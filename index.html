@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tiên Lộ — Tu Tiên Giới</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101923;color:#f4e9c8;font-family:system-ui,Arial}header{padding:14px 18px;background:#182535;border-bottom:1px solid #40515d;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}h1{margin:0;font-size:22px;color:#f6d78a}main{max-width:1000px;margin:auto;padding:16px;display:grid;grid-template-columns:1fr 280px;gap:14px}.panel{background:#1a2934;border:1px solid #40515d;border-radius:12px;padding:14px}.world{position:relative}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.stat{background:#263a46;border-radius:8px;padding:8px;font-size:13px}.stat b{display:block;color:#f6d78a;font-size:17px}canvas{width:100%;height:auto;display:block;border-radius:8px;border:2px solid #65796c;image-rendering:pixelated;background:#315e42}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.button{background:#8c623b;color:#fff2d0;border:0;border-radius:8px;padding:10px 12px;font-weight:700;cursor:pointer}.button:hover{filter:brightness(1.15)}.button:disabled{opacity:.4}.log{height:160px;overflow:auto;background:#101923;padding:10px;border-radius:8px;font-size:13px;line-height:1.5}.sect{margin:12px 0 6px;color:#f6d78a}.bar{height:10px;background:#35444c;border-radius:10px;overflow:hidden;margin:6px 0}.bar span{display:block;height:100%;background:#67c78c;width:0}.hint{font-size:12px;color:#c2c9c6}.mobile{display:none}@media(max-width:750px){main{grid-template-columns:1fr;padding:10px}.mobile{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}.stats{grid-template-columns:repeat(3,1fr)}header{padding:12px}}
+</style>
+</head>
+<body>
+<header><h1>☯ TIÊN LỘ — TU TIÊN GIỚI</h1><span>Game tu tiên 2D • Bản thử nghiệm</span></header>
+<main>
+<section class="panel world">
+<div class="stats">
+<div class="stat">Cảnh giới<b id="realm">Luyện Khí tầng 1</b></div>
+<div class="stat">Linh thạch<b id="stone">0</b></div>
+<div class="stat">Tu vi<b id="xp">0 / 100</b></div>
+</div>
+<canvas id="game" width="640" height="420"></canvas>
+<div class="controls">
+<button class="button" onclick="cultivate()">☯ Tu luyện</button>
+<button class="button" onclick="gather()">🌿 Hái linh thảo</button>
+<button class="button" onclick="mine()">⛏ Đào linh quặng</button>
+<button class="button" onclick="fight()">⚔ Khiêu chiến yêu thú</button>
+</div>
+<div class="mobile">
+<button class="button" onclick="move(0,-1)">▲</button>
+<button class="button" onclick="move(-1,0)">◀</button>
+<button class="button" onclick="move(0,1)">▼</button>
+<button class="button" onclick="move(1,0)">▶</button>
+</div>
+<p class="hint">Di chuyển bằng WASD hoặc phím mũi tên. Đi đến gần linh thảo/quặng để thu thập.</section>
+<aside class="panel">
+<h3 class="sect">📜 Tu tiên nhật ký</h3><div class="log" id="log"></div>
+<h3 class="sect">🎒 Túi hành trang</h3>
+<div>🌿 Linh thảo: <b id="herb">0</b></div><div>⛏ Linh quặng: <b id="ore">0</b></div>
+<h3 class="sect">✨ Đột phá cảnh giới</h3>
+<p class="hint">Tích lũy tu vi để đột phá. Mỗi lần lên cảnh giới, sức mạnh và phần thưởng sẽ tăng.</p>
+<button class="button" style="width:100%" onclick="breakthrough()">Đột phá</button>
+<button class="button" style="width:100%;margin-top:8px;background:#455b65" onclick="resetGame()">Bắt đầu lại</button>
+</aside>
+</main>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const tile=40, cols=16, rows=10;
+let player={x:7,y:5}, realm=0, tier=1, xp=0, stone=0, herb=0, ore=0, hp=100;
+const realms=['Luyện Khí','Trúc Cơ','Kim Đan','Nguyên Anh','Hóa Thần','Luyện Hư','Hợp Thể','Đại Thừa','Độ Kiếp'];
+let plants=[{x:3,y:3},{x:12,y:7},{x:5,y:8},{x:14,y:2}], mines=[{x:2,y:7},{x:11,y:3},{x:8,y:1}], beasts=[{x:10,y:6},{x:4,y:1}];
+function log(s){let el=document.getElementById('log');el.innerHTML='• '+s+'<br>'+el.innerHTML}
+function update(){document.getElementById('realm').textContent=realms[realm]+' tầng '+tier;document.getElementById('stone').textContent=stone;document.getElementById('xp').textContent=xp+' / '+(tier*100);document.getElementById('herb').textContent=herb;document.getElementById('ore').textContent=ore}
+function draw(){
+ctx.clearRect(0,0,640,420);
+for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){ctx.fillStyle=((x+y)%2)?'#386b4b':'#3d7450';ctx.fillRect(x*tile,y*tile,tile,tile);ctx.strokeStyle='#477e58';ctx.strokeRect(x*tile,y*tile,tile,tile)}
+// path
+for(let x=6;x<10;x++){ctx.fillStyle='#927e5b';ctx.fillRect(x*tile,5*tile,tile,tile)}
+plants.forEach(p=>{ctx.fillStyle='#173b27';ctx.fillRect(p.x*tile+9,p.y*tile+10,22,22);ctx.fillStyle='#79df8c';ctx.fillRect(p.x*tile+14,p.y*tile+5,12,12);ctx.fillStyle='#d7e77a';ctx.fillRect(p.x*tile+17,p.y*tile+8,6,6)});
+mines.forEach(p=>{ctx.fillStyle='#48545f';ctx.fillRect(p.x*tile+7,p.y*tile+7,26,26);ctx.fillStyle='#9bc5d9';ctx.fillRect(p.x*tile+15,p.y*tile+10,9,9)});
+beasts.forEach(p=>{ctx.fillStyle='#6b263a';ctx.fillRect(p.x*tile+8,p.y*tile+8,24,24);ctx.fillStyle='#ffcf75';ctx.fillRect(p.x*tile+12,p.y*tile+13,5,5);ctx.fillRect(p.x*tile+23,p.y*tile+13,5,5)});
+ctx.fillStyle='#e9d9a5';ctx.fillRect(player.x*tile+10,player.y*tile+8,20,25);ctx.fillStyle='#4a2e26';ctx.fillRect(player.x*tile+8,player.y*tile+4,24,9);ctx.fillStyle='#e9b77d';ctx.fillRect(player.x*tile+13,player.y*tile+12,14,10);ctx.fillStyle='#fff';ctx.fillRect(player.x*tile+15,player.y*tile+15,3,3);ctx.fillRect(player.x*tile+22,player.y*tile+15,3,3);
+}
+function move(dx,dy){player.x=Math.max(0,Math.min(cols-1,player.x+dx));player.y=Math.max(0,Math.min(rows-1,player.y+dy));draw()}
+document.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','w'].includes(k))move(0,-1);if(['arrowdown','s'].includes(k))move(0,1);if(['arrowleft','a'].includes(k))move(-1,0);if(['arrowright','d'].includes(k))move(1,0)});
+function nearby(list){return list.findIndex(p=>Math.abs(p.x-player.x)<=1&&Math.abs(p.y-player.y)<=1)}
+function cultivate(){let gain=20+realm*8;tier===9?gain+=10:0;xp+=gain;log('Bạn nhập định tu luyện, thu được '+gain+' điểm tu vi.');update()}
+function gather(){let i=nearby(plants);if(i<0){log('Hãy đến gần bụi linh thảo màu xanh.');return}plants.splice(i,1);herb++;xp+=12;log('Thu thập được 1 linh thảo.');update();draw()}
+function mine(){let i=nearby(mines);if(i<0){log('Hãy đến gần mỏ linh quặng màu xám.');return}mines.splice(i,1);ore++;stone+=5;xp+=15;log('Đào được linh quặng, nhận 5 linh thạch.');update();draw()}
+function fight(){let i=nearby(beasts);if(i<0){log('Không có yêu thú ở gần.');return}beasts.splice(i,1);let reward=25+realm*10;stone+=reward;xp+=30;log('Đánh bại yêu thú! Nhận '+reward+' linh thạch và 30 tu vi.');update();draw()}
+function breakthrough(){let need=tier*100;if(xp<need){log('Tu vi chưa đủ. Cần '+need+' điểm tu vi.');return}xp-=need;tier++;if(tier>9){tier=1;realm=Math.min(realm+1,realms.length-1);stone+=100;log('Đột phá đại cảnh giới thành công! Nhận 100 linh thạch.')}else log('Đột phá thành công lên '+realms[realm]+' tầng '+tier+'.');update()}
+function resetGame(){player={x:7,y:5};realm=0;tier=1;xp=0;stone=0;herb=0;ore=0;plants=[{x:3,y:3},{x:12,y:7},{x:5,y:8},{x:14,y:2}];mines=[{x:2,y:7},{x:11,y:3},{x:8,y:1}];beasts=[{x:10,y:6},{x:4,y:1}];document.getElementById('log').innerHTML='';log('Bạn đặt chân vào con đường tu tiên.');update();draw()}
+log('Bạn đặt chân vào con đường tu tiên.');update();draw();
+</script>
+</body></html>
